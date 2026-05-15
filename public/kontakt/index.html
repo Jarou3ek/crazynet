@@ -39,6 +39,7 @@
       gtag('js', new Date());
       gtag('config', 'G-C2LSMSJXKG');
     </script>
+      <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   </head>
   <body>
     <div class="nav secondary-nav">
@@ -252,14 +253,14 @@
         <div class="card secondary-card">
           <h1 class="h1-heading">Kontaktujte nás</h1>
           <div class="w-form">
-            <form id="wf-form-Formular" name="wf-form-Formular" data-name="Formular" method="get" class="form form-2" data-wf-page-id="6875740e361d1e314836a9a6" data-wf-element-id="9510c726-f666-6ad7-02dc-d8297c2c3995" data-turnstile-sitekey="0x4AAAAAAAQTptj2So4dx43e">
+            <form id="wf-form-Formular" name="wf-form-Formular" data-name="Formular" method="post" action="/api/contact" class="form form-2" data-wf-page-id="6875740e361d1e314836a9a6" data-wf-element-id="9510c726-f666-6ad7-02dc-d8297c2c3995">
               <div class="div-block-5"><input class="text-field w-input" maxlength="256" name="name" data-name="Name" placeholder="Jméno" type="text" id="name" /><input class="w-input" maxlength="256" name="email" data-name="Email" placeholder="Email" type="email" id="email" required="" /></div><select id="P-edm-t" name="P-edm-t" data-name="Předmět" required="" class="select-field w-select">
                 <option value="Another option">Vyberte předmět</option>
                 <option value="First">Internet na Doma</option>
                 <option value="Second">Internet pro Firmy</option>
                 <option value="Third">Správa sítí</option>
                 <option value="Fourth">Ostatní</option>
-              </select><textarea placeholder="Zpráva" maxlength="5000" id="field" name="field" data-name="Field" class="w-input"></textarea><input type="submit" data-wait="Please wait..." class="button secondary-button w-button" value="Odeslat" />
+              </select><textarea placeholder="Zpráva" maxlength="5000" id="field" name="field" data-name="Field" class="w-input"></textarea><div class="cf-turnstile" data-sitekey="0x4AAAAAADQDyAdbBQ0AW7ey"></div><input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0" aria-hidden="true" /><input type="submit" data-wait="Please wait..." class="button secondary-button w-button" value="Odeslat" />
             </form>
             <div class="w-form-done">
               <div>Děkujeme za zaslání zprávy.</div>
@@ -404,5 +405,75 @@
     <script src="/cdn.prod.website-files.com/6840685fae01aca99431ffbe/js/webflow.schunk.ff4f427f3115b0d7.js" type="text/javascript"></script>
     <script src="/cdn.prod.website-files.com/6840685fae01aca99431ffbe/js/webflow.0e7961ba.efb62af2453a6dc1.js" type="text/javascript"></script><!-- Footer Code (Project Settings) -->
     <script async defer src="https://plugin.sledovanitv.cz/plugin.js?id=m-plugin&partner=crazynet&lang=cz"></script>
+  
+    <script>
+      // CrazyNet contact form handler
+      document.addEventListener("submit", async function (event) {
+        const form = event.target;
+
+        if (!form.matches('form[action="/api/contact"]')) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        const wrapper = form.closest(".w-form");
+        const success = wrapper ? wrapper.querySelector(".w-form-done") : null;
+        const fail = wrapper ? wrapper.querySelector(".w-form-fail") : null;
+        const submit = form.querySelector('[type="submit"]');
+
+        if (success) success.style.display = "none";
+        if (fail) fail.style.display = "none";
+        if (submit) {
+          submit.disabled = true;
+          submit.value = submit.getAttribute("data-wait") || "Odesílám...";
+        }
+
+        try {
+          const response = await fetch(form.action, {
+            method: "POST",
+            body: new FormData(form),
+            headers: {
+              "accept": "application/json"
+            }
+          });
+
+          const data = await response.json().catch(() => ({}));
+
+          if (!response.ok || !data.ok) {
+            throw new Error(data.message || "Zprávu se nepodařilo odeslat.");
+          }
+
+          form.reset();
+
+          if (window.turnstile) {
+            window.turnstile.reset();
+          }
+
+          if (success) {
+            success.style.display = "block";
+          } else {
+            alert(data.message || "Děkujeme, zpráva byla odeslána.");
+          }
+        } catch (error) {
+          if (fail) {
+            fail.style.display = "block";
+            const message = fail.querySelector("div");
+            if (message) {
+              message.textContent = error.message;
+            }
+          } else {
+            alert(error.message);
+          }
+        } finally {
+          if (submit) {
+            submit.disabled = false;
+            submit.value = "Odeslat";
+          }
+        }
+      }, true);
+    </script>
+
   </body>
 </html>
